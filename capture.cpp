@@ -29,6 +29,7 @@ protected:
     webrtc::ViECapture* ptrViECapture;
     webrtc::ViERender* ptrViERender;
     webrtc::CaptureCapability cap;
+    int frames;
 
     // GIPSViEExternalRenderer
     int FrameSizeChange(
@@ -161,6 +162,8 @@ VideoSourceGIPS::Start()
 {
     int error = 0;
 
+    frames = 0;
+
     error = ptrViECapture->ConnectCaptureDevice(gipsCaptureId,
         videoChannel);
     if (error == -1) {
@@ -228,6 +231,8 @@ VideoSourceGIPS::Stop()
     ptrViERender->Release();
     ptrViECapture->Release();
 
+    fprintf(stderr, "\nCaptured %d frames.\n", frames);
+
     return;
 }
 
@@ -236,7 +241,7 @@ VideoSourceGIPS::FrameSizeChange(
     unsigned int width, unsigned int height, unsigned int numberOfStreams)
 {
     // XXX: Hmm?
-    fprintf(stderr, "Got FrameSizeChange: %d %d\n", width, height);
+    fprintf(stderr, "\nGot FrameSizeChange: %d %d\n", width, height);
     return -1;
 }
 
@@ -245,8 +250,12 @@ VideoSourceGIPS::DeliverFrame(unsigned char* buffer, int bufferSize)
 {
     fwrite("FRAME\n", 6, 1, tmp);
     fwrite(buffer, bufferSize, 1, tmp);
+    frames++;
+
+    fprintf(stderr, "\rFrame %08d                 ", frames);
     return 0;
 }
+
 
 int
 main()
