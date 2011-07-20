@@ -38,7 +38,7 @@ VideoSourceGIPS::VideoSourceGIPS()
     int error = 0;
     videoChannel = -1;
 
-    tmp = fopen("test.raw", "w+");
+    tmp = fopen("test.y4m", "w+");
     ptrViE = webrtc::VideoEngine::Create();
     if (ptrViE == NULL) {
         fprintf(stderr, "ERROR in GIPSVideoEngine::Create\n");
@@ -117,6 +117,10 @@ VideoSourceGIPS::VideoSourceGIPS()
     error = ptrViECapture->GetCaptureCapability(
         uniqueId, KMaxUniqueIdLength, 0, cap
     );
+
+    // write out video header
+    fprintf(tmp, "YUV4MPEG2 W%d H%d F%d:1\n",
+        cap.width, cap.height, cap.maxFPS);
 
     gipsCaptureId = 0;
     error = ptrViECapture->AllocateCaptureDevice(uniqueId,
@@ -235,6 +239,7 @@ VideoSourceGIPS::FrameSizeChange(
 int
 VideoSourceGIPS::DeliverFrame(unsigned char* buffer, int bufferSize)
 {
+    fwrite("FRAME\n", 6, 1, tmp);
     fwrite(buffer, bufferSize, 1, tmp);
     return 0;
 }
