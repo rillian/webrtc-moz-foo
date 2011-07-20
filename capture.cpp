@@ -43,6 +43,7 @@ VideoSourceGIPS::VideoSourceGIPS()
     int error = 0;
     videoChannel = -1;
 
+    // Open file for recording
     tmp = fopen("test.y4m", "w+");
     ptrViE = webrtc::VideoEngine::Create();
     if (ptrViE == NULL) {
@@ -123,7 +124,7 @@ VideoSourceGIPS::VideoSourceGIPS()
         uniqueId, KMaxUniqueIdLength, 0, cap
     );
 
-    // write out video header
+    // Write out video header
     fprintf(tmp, "YUV4MPEG2 W%d H%d F%d:1\n",
         cap.width, cap.height, cap.maxFPS);
 
