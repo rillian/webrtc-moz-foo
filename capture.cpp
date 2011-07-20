@@ -100,6 +100,7 @@ VideoSourceGIPS::VideoSourceGIPS()
         fprintf(stderr, "ERROR in GIPSViECapture::GIPSViE_GetCaptureDevice\n");
         return;
     }
+    fprintf(stderr, "Got device name='%s' id='%s'\n", deviceName, uniqueId);
 
     int numCaps = ptrViECapture->NumberOfCapabilities(
         uniqueId, KMaxUniqueIdLength
@@ -265,7 +266,7 @@ main()
     gips->Start();
 
     std::string str;
-    std::cout << "Stop... ";
+    std::cout << "Press <enter> to stop... ";
     std::getline(std::cin, str);
 
     gips->Stop();
