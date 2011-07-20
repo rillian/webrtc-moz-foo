@@ -1,3 +1,7 @@
+/* Test client
+   Uses the webrtc capture routines to record video to a file.
+ */
+
 #include <iostream>
 #include <string>
 #include <stdio.h>
