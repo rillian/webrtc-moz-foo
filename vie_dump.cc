@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 
   // Enumerate and dump codecs
   int num_codecs = codec->NumberOfCodecs();
-  fprintf(stderr, "Video Engine reports %d audio codecs:\n", num_codecs);
+  fprintf(stderr, "Video Engine reports %d video codecs:\n", num_codecs);
 
   for (int i = 0; i < num_codecs; i++) {
     VideoCodec c;
