@@ -13,9 +13,9 @@ capture: capture.cpp
 	g++ -g -Wall $(INCLUDES) -o $@ $< $(WEBRTC)
 
 dump_voe: INCLUDES += -I../src/voice_engine/main/interface
-dump_voe: voe_dump.cc
+dump_voe: dump_voe.cc
 	g++ -g -Wall $(INCLUDES) -o $@ $< $(WEBRTC)
 
 dump_vie: INCLUDES += -I../src/video_engine/main/interface
-dump_vie: vie_dump.cc
+dump_vie: dump_vie.cc
 	g++ -g -Wall $(INCLUDES) -o $@ $< $(WEBRTC)
