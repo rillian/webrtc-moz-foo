@@ -59,7 +59,7 @@ VideoSourceGIPS::VideoSourceGIPS()
 
     ptrViEBase = webrtc::ViEBase::GetInterface(ptrViE);
     if (ptrViEBase == NULL) {
-        printf("ERROR in GIPSViEBase::GIPSViE_GetInterface\n");
+        fprintf(stderr, "ERROR in GIPSViEBase::GIPSViE_GetInterface\n");
         return;
     }
     error = ptrViEBase->Init();
