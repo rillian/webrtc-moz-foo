@@ -74,7 +74,7 @@ $(1)_OBJS := $$($(1)_SRCS:.cc=.o)
 $(1)_OBJS := $$($(1)_OBJS:.cpp=.o)
 ALL_OBJS += $$($(1)_OBJS)
 $(1).o: CPPFLAGS += $$($(1)_CFLAGS)
-$(1): $$($(1)_OBJS)
+$(1): $$($(1)_OBJS) $$(filter %.a, $$(LIBS))
 	g++ $$(CFLAGS) -o $$@ $$^ $$(LIBS)
 endef
 
