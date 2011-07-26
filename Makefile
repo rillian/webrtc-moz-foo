@@ -1,11 +1,12 @@
 PROGS := capture dump_voe dump_vie
 
 CPPFLAGS ?= -g -Wall
-CPPFLAGS += -I../src -I../src/video_engine/main/interface
+CPPFLAGS += -I../src
+CPPFLAGS += -I../src/voice_engine/main/interface
+CPPFLAGS += -I../src/video_engine/main/interface
 
 capture_SRCS := capture.cpp
 dump_voe_SRCS := dump_voe.cc
-dump_voe_CFLAGS := -I../src/voice_engine/main/interface
 dump_vie_SRCS := dump_vie.cc
 
 WEBRTC_BUILDPATH ?= ../out/Debug/obj.target

@@ -11,7 +11,15 @@
 #include <vie_codec.h>
 #include <vie_render.h>
 #include <vie_capture.h>
+
+#include <voe_base.h>
+#include <voe_hardware.h>
+#include <voe_external_media.h>
+
 #include <common_types.h>
+
+
+/*** Video capture controller ***/
 
 class VideoSourceGIPS : public webrtc::ExternalRenderer {
 public:
@@ -254,22 +262,220 @@ VideoSourceGIPS::DeliverFrame(unsigned char* buffer, int bufferSize)
     fwrite(buffer, bufferSize, 1, tmp);
     frames++;
 
-    fprintf(stderr, "\rFrame %08d                 ", frames);
+    fprintf(stderr, "Video frame %08d\n", frames);
     return 0;
 }
 
 
+/*** Audio capture controller ***/
+
+class AudioSourceGIPS : public webrtc::VoEMediaProcess {
+public:
+    AudioSourceGIPS();
+    ~AudioSourceGIPS();
+    void Start();
+    void Stop();
+
+    void Process(const int channel,
+                 const webrtc::ProcessingTypes type,
+                 WebRtc_Word16 audio10ms[], const int length,
+                 const int samplingFreq, const bool isStereo);
+
+protected:
+    const char *filename;
+    int frames;
+    webrtc::VoiceEngine* ptrVoE;
+    webrtc::VoEBase* ptrVoEBase;
+    webrtc::VoEHardware *ptrVoEHardware;
+    webrtc::VoEExternalMedia* ptrVoERender;
+    webrtc::CodecInst codec;
+    int channel;
+};
+
+AudioSourceGIPS::AudioSourceGIPS()
+{
+    int error = 0;
+
+    filename = "test.wav";
+
+    ptrVoE = webrtc::VoiceEngine::Create();
+    if (ptrVoE == NULL) {
+        fprintf(stderr, "ERROR in GIPSVoiceEngine::Create\n");
+        return;
+    }
+
+    error = ptrVoE->SetTraceFile("GIPSVoETrace.txt");
+    if (error == -1) {
+        fprintf(stderr, "ERROR in GIPSVoiceEngine::SetTraceFile\n");
+        return;
+    }
+
+    ptrVoEBase = webrtc::VoEBase::GetInterface(ptrVoE);
+    if (ptrVoEBase == NULL) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::GetInterface\n");
+        return;
+    }
+    error = ptrVoEBase->Init();
+    if (error == -1) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::Init\n");
+        return;
+    }
+
+    channel = ptrVoEBase->CreateChannel();
+    if (channel < 0) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::CreateChannel\n");
+    }
+
+    ptrVoEHardware = webrtc::VoEHardware::GetInterface(ptrVoE);
+    if (ptrVoEHardware == NULL) {
+        fprintf(stderr, "ERROR in VoEHardware::GetInterface\n");
+    }
+
+    int nDevices;
+    error = ptrVoEHardware->GetNumOfRecordingDevices(nDevices);
+    fprintf(stderr, "Got %d recording devices devices!\n", nDevices);
+    for (int i = 0; i < nDevices; i++) {
+        char name[128], guid[128];
+        memset(name, 0, 128);
+        memset(guid, 0, 128);
+        error = ptrVoEHardware->GetRecordingDeviceName(i, name, guid);
+        if (error) {
+            fprintf(stderr, "ERROR in VoEHardware::GetRecordingDeviceName\n");
+        } else {
+            fprintf(stderr, "%d\t%s (%s)\n", i, name, guid);
+        }
+    }
+
+    fprintf(stderr, "setting default recording device\n");
+    error = ptrVoEHardware->SetRecordingDevice(0);
+    if (error) {
+        fprintf(stderr, "ERROR in VoEHardware::SetRecordingDevice\n");
+    }
+
+    bool recAvail = false;
+    ptrVoEHardware->GetRecordingDeviceStatus(recAvail);
+    fprintf(stderr, "Recording device is %savailable\n",
+        recAvail ? "" : "NOT ");
+
+    ptrVoERender = webrtc::VoEExternalMedia::GetInterface(ptrVoE);
+    if (ptrVoERender == NULL) {
+        fprintf(stderr, "ERROR in GIPSVoEExernalMedia::GetInterface\n");
+        return;
+    }
+
+    ptrVoEBase->SetSendDestination(channel, 8000, "127.0.0.1");
+    ptrVoEBase->SetLocalReceiver(channel, 8000);
+
+    strcpy(codec.plname, "PCMU");
+    codec.channels = 1;
+    codec.pacsize = 160;
+    codec.plfreq = 8000;
+    codec.pltype = 0;
+    codec.rate = 64000;
+
+}
+
+AudioSourceGIPS::~AudioSourceGIPS()
+{
+    int error;
+
+    error = ptrVoEBase->DeleteChannel(channel);
+    if (error == -1) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::DeleteChannel\n");
+    }
+
+    ptrVoEBase->Terminate();
+    ptrVoEBase->Release();
+    ptrVoEHardware->Release();
+    ptrVoERender->Release();
+
+    if (webrtc::VoiceEngine::Delete(ptrVoE) == false) {
+        fprintf(stderr, "ERROR in GIPSVoiceEngine::Delete\n");
+    }
+}
+
+void
+AudioSourceGIPS::Start()
+{
+    int error;
+
+    error = ptrVoEBase->StartReceive(channel);
+    if (error) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::StartReceive\n");
+    }
+    error = ptrVoEBase->StartPlayout(channel);
+    if (error) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::StartPlayout\n");
+    }
+    error = ptrVoEBase->StartSend(channel);
+    if (error) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::StartSend\n");
+    }
+
+    error = ptrVoERender->RegisterExternalMediaProcessing(channel,
+        webrtc::kRecordingPerChannel, *this);
+    if (error) {
+        fprintf(stderr, "ERROR in GIPSVoEExternalMedia::RegisterExternalMediaProcessing\n");
+    }
+}
+
+void
+AudioSourceGIPS::Stop()
+{
+    int error;
+
+    error = ptrVoERender->DeRegisterExternalMediaProcessing(channel,
+        webrtc::kRecordingPerChannel);
+    if (error) {
+        fprintf(stderr, "ERROR in GIPSVoEExternalMedia::DeRegisterExternalMediaProcessing\n");
+    }
+
+    error = ptrVoEBase->StopSend(channel);
+    if (error) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::StopSend\n");
+    }
+    error = ptrVoEBase->StopReceive(channel);
+    if (error) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::StopReceive\n");
+    }
+    error = ptrVoEBase->StopPlayout(channel);
+    if (error) {
+        fprintf(stderr, "ERROR in GIPSVoEBase::StopPlayout\n");
+    }
+}
+
+void AudioSourceGIPS::Process(const int channel,
+             const webrtc::ProcessingTypes type,
+             WebRtc_Word16 audio10ms[], const int length,
+             const int samplingFreq, const bool isStereo)
+{
+    fprintf(stderr, "Audio frame %08d buffer %08llx\t %d\t %d Hz %s\n",
+            frames,
+            (unsigned long long)audio10ms, length, samplingFreq,
+            isStereo ? "stereo" : "mono");
+    frames++;
+    return;
+}
+
+/*** test harness ***/
 int
 main()
 {
-    VideoSourceGIPS *gips = new VideoSourceGIPS();
-    gips->Start();
+    VideoSourceGIPS *video = new VideoSourceGIPS();
+    video->Start();
+
+    AudioSourceGIPS *audio = new AudioSourceGIPS();
+    audio->Start();
 
     std::string str;
     std::cout << "Press <enter> to stop... ";
     std::getline(std::cin, str);
 
-    gips->Stop();
-    delete gips;
+    audio->Stop();
+    delete audio;
+
+    video->Stop();
+    delete video;
+
     return 0;
 }
