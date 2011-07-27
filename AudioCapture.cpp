@@ -82,6 +82,10 @@ AudioSourceGIPS::AudioSourceGIPS()
         return;
     }
 
+    /* NB: we must set a send destination and call StartSend
+       before the capture pipeline will run. Starting the
+       receiver is optional, but nice for the demo because
+       it feeds a monitor signal to the playout device. */
     ptrVoEBase->SetSendDestination(channel, 8000, "127.0.0.1");
     ptrVoEBase->SetLocalReceiver(channel, 8000);
 
