@@ -53,6 +53,7 @@ VideoSourceGIPS::VideoSourceGIPS()
 
     // Open file for recording
     tmp = fopen("test.y4m", "w+");
+
     ptrViE = webrtc::VideoEngine::Create();
     if (ptrViE == NULL) {
         fprintf(stderr, "ERROR in GIPSVideoEngine::Create\n");
@@ -290,6 +291,10 @@ protected:
     webrtc::VoEExternalMedia* ptrVoERender;
     webrtc::CodecInst codec;
     int channel;
+
+    int WriteWAVHeader(int samplingFreq, int channels);
+    int FinishWAVHeader();
+    FILE *wav;
 };
 
 AudioSourceGIPS::AudioSourceGIPS()
@@ -399,6 +404,12 @@ AudioSourceGIPS::Start()
 {
     int error;
 
+    wav = fopen(filename, "wb");
+    if (wav == NULL) {
+        fprintf(stderr, "ERROR opening audio spool file\n");
+    }
+    this->WriteWAVHeader(8000,1);
+
     error = ptrVoEBase->StartReceive(channel);
     if (error) {
         fprintf(stderr, "ERROR in GIPSVoEBase::StartReceive\n");
@@ -442,6 +453,10 @@ AudioSourceGIPS::Stop()
     if (error) {
         fprintf(stderr, "ERROR in GIPSVoEBase::StopPlayout\n");
     }
+
+    this->FinishWAVHeader();
+    fclose(wav);
+
 }
 
 void AudioSourceGIPS::Process(const int channel,
@@ -454,7 +469,74 @@ void AudioSourceGIPS::Process(const int channel,
             (unsigned long long)audio10ms, length, samplingFreq,
             isStereo ? "stereo" : "mono");
     frames++;
+
+    fwrite(audio10ms, length, 1, wav);
     return;
+}
+
+/* helper: write a little-endian 32 bit integer */
+static int writeu32(unsigned int value, FILE *out)
+{
+    unsigned char buf[4];
+
+    buf[0] = value & 0xff;
+    buf[1] = (value >> 8) & 0xff;
+    buf[2] = (value >> 16) & 0xff;
+    buf[3] = (value >> 24) & 0xff;
+
+    return fwrite(buf, 4, 1, out);
+}
+
+/* helper: write a little-endian 16 bit integer */
+static int writeu16(unsigned short value, FILE *out)
+{
+    unsigned char buf[2];
+
+    buf[0] = value & 0xff;
+    buf[1] = (value >> 8) & 0xff;
+
+    return fwrite(buf, 2, 1, out);
+}
+
+/* write out a WAV file header for spooling audio */
+int AudioSourceGIPS::WriteWAVHeader(int samplingFreq, int channels)
+{
+    int bytesPerChannel = 2;
+
+    // RIFF header
+    fwrite("RIFF", 4, 1, wav);
+    writeu32(36, wav); // chunk size; fixup later with the total length
+    fwrite("WAVE", 4, 1, wav);
+    // fmt chunk
+    fwrite("fmt ", 4, 1, wav);
+    writeu32(16, wav); // chunk length for PCM format
+    writeu16(1, wav);  // PCM format
+    writeu16(channels, wav);
+    writeu32(samplingFreq, wav);
+    writeu32(samplingFreq*channels*bytesPerChannel, wav); // bytes per second
+    writeu16(channels*bytesPerChannel, wav);              // frame size
+    writeu16(bytesPerChannel*8, wav);                     // bits per channel
+    // data chunk
+    fwrite("data", 4, 1, wav);
+    writeu32(0, wav);  // data size; fixup later
+
+    return 0;
+}
+
+/* Fix up WAV file header with final length */
+int AudioSourceGIPS::FinishWAVHeader()
+{
+    long length;
+
+    // find out how much data we've written
+    length = ftell(wav);
+    // update the size fields appropriately
+    fseek(wav, 4, SEEK_SET);
+    writeu32(length - 8, wav);
+    fseek(wav, 40, SEEK_SET);
+    writeu32(length - 44, wav);
+
+    return 0;
 }
 
 /*** test harness ***/
