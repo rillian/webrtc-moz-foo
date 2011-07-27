@@ -2,9 +2,6 @@
    Uses the webrtc capture routines to record audio to a file.
  */
 
-#include <iostream>
-#include <string>
-#include <stdio.h>
 #include <string.h>
 
 #include "AudioCapture.h"
