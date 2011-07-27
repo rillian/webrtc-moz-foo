@@ -5,7 +5,7 @@ CPPFLAGS += -I../src
 CPPFLAGS += -I../src/voice_engine/main/interface
 CPPFLAGS += -I../src/video_engine/main/interface
 
-capture_SRCS := capture.cpp
+capture_SRCS := capture.cpp AudioCapture.cpp VideoCapture.cpp
 dump_voe_SRCS := dump_voe.cc
 dump_vie_SRCS := dump_vie.cc
 
