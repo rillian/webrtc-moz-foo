@@ -86,13 +86,22 @@ AudioSourceGIPS::AudioSourceGIPS()
     ptrVoEBase->SetSendDestination(channel, 8000, "127.0.0.1");
     ptrVoEBase->SetLocalReceiver(channel, 8000);
 
-    strcpy(codec.plname, "PCMU");
-    codec.channels = 1;
-    codec.pacsize = 160;
-    codec.plfreq = 8000;
-    codec.pltype = 0;
-    codec.rate = 64000;
-
+    /* set up the codec we want to use */
+    ptrVoECodec = webrtc::VoECodec::GetInterface(ptrVoE);
+    if (ptrVoECodec == NULL) {
+        fprintf(stderr, "ERROR in GIPSVoECodec::GetInterface\n");
+    } else {
+        strcpy(codec.plname, "PCMU");
+        codec.channels = 1;
+        codec.pacsize = 160;
+        codec.plfreq = 8000;
+        codec.pltype = 0;
+        codec.rate = 64000;
+        error = ptrVoECodec->SetSendCodec(channel, codec);
+        if (error) {
+            fprintf(stderr, "ERROR in GIPSVoECodec::SetSendCodec\n");
+        }
+    }
 }
 
 AudioSourceGIPS::~AudioSourceGIPS()
@@ -107,6 +116,7 @@ AudioSourceGIPS::~AudioSourceGIPS()
     ptrVoEBase->Terminate();
     ptrVoEBase->Release();
     ptrVoEHardware->Release();
+    ptrVoECodec->Release();
     ptrVoERender->Release();
 
     if (webrtc::VoiceEngine::Delete(ptrVoE) == false) {
