@@ -189,7 +189,7 @@ void AudioSourceGIPS::Process(const int channel,
              WebRtc_Word16 audio10ms[], const int length,
              const int samplingFreq, const bool isStereo)
 {
-    fprintf(stderr, "Audio frame %08d buffer %08llx\t %d\t %d Hz %s\n",
+    fprintf(stderr, "Audio frame %08d buffer 0x%016llx\t %d\t %d Hz %s\n",
             frames,
             (unsigned long long)audio10ms, length, samplingFreq,
             isStereo ? "stereo" : "mono");
