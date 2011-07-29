@@ -10,6 +10,7 @@
 #include <voe_base.h>
 #include <voe_hardware.h>
 #include <voe_codec.h>
+#include <voe_network.h>
 #include <voe_external_media.h>
 
 #include <common_types.h>
@@ -36,6 +37,7 @@ protected:
     webrtc::VoEBase* ptrVoEBase;
     webrtc::VoEHardware* ptrVoEHardware;
     webrtc::VoEExternalMedia* ptrVoERender;
+    webrtc::VoENetwork* ptrVoENetwork;
     webrtc::VoECodec* ptrVoECodec;
     webrtc::CodecInst codec;
     int channel;

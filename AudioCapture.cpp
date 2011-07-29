@@ -8,6 +8,40 @@
 
 /** implementation **/
 
+/* dummy transport to act as a sink for the voice engine pipeline **/
+class DummyTransport : public webrtc::Transport {
+public:
+    int SendPacket(int channel, const void *data, int len);
+    int SendRTCPPacket(int channel, const void *data, int len);
+};
+
+int
+DummyTransport::SendPacket(int channel, const void *data, int len)
+{
+    fprintf(stderr,
+        "RTP packet channel %d 0x%016llx %d bytes\n", channel,
+        (unsigned long long)data, len);
+
+    return 0;
+}
+
+int
+DummyTransport::SendRTCPPacket(int channel, const void *data, int len)
+{
+    fprintf(stderr,
+        "RTCP packet channel %d 0x%016llx %d bytes\n", channel,
+        (unsigned long long)data, len);
+
+    return 0;
+}
+
+/* our dummy transport has no state, so it's safe to use a global
+   for the version we pass to VoENetwork. This allows us to keep
+   the class definition private to our implementation, since its
+   lifecycle isn't tied to any AudioSourceGIPS object */
+static DummyTransport dummyTransport;
+
+
 AudioSourceGIPS::AudioSourceGIPS()
 {
     int error = 0;
@@ -79,12 +113,26 @@ AudioSourceGIPS::AudioSourceGIPS()
         return;
     }
 
-    /* NB: we must set a send destination and call StartSend
-       before the capture pipeline will run. Starting the
-       receiver is optional, but nice for the demo because
-       it feeds a monitor signal to the playout device. */
-    ptrVoEBase->SetSendDestination(channel, 8000, "127.0.0.1");
-    ptrVoEBase->SetLocalReceiver(channel, 8000);
+    /* NB: To capture audio we must have a network sink
+       for the voice engine packets; it won't just run
+       the capture part of the pipeline like the video engine
+       will. We install a dummy network transport object
+       to handle this. The alternative it to set a destination
+       socket with ptrVoEBase->SetSendDestination, after
+       which StartSend() to push real network packets. */
+    //ptrVoEBase->SetSendDestination(channel, 8000, "127.0.0.1");
+    //ptrVoEBase->SetLocalReceiver(channel, 8000);
+
+    ptrVoENetwork = webrtc::VoENetwork::GetInterface(ptrVoE);
+    if (ptrVoENetwork == NULL) {
+        fprintf(stderr, "ERROR in GIPSVoENetwork::GetInterface\n");
+    }
+
+    error = ptrVoENetwork->RegisterExternalTransport(channel, dummyTransport);
+    if (error) {
+        fprintf(stderr,
+            "ERROR in GIPSVoENetwork::RegisterExternalTransport\n");
+    }
 
     /* set up the codec we want to use */
     ptrVoECodec = webrtc::VoECodec::GetInterface(ptrVoE);
@@ -108,6 +156,12 @@ AudioSourceGIPS::~AudioSourceGIPS()
 {
     int error;
 
+    error = ptrVoENetwork->DeRegisterExternalTransport(channel);
+    if (error) {
+        fprintf(stderr,
+            "ERROR in GIPSVoENetwork::DeRegisterExternalTransport\n");
+    }
+
     error = ptrVoEBase->DeleteChannel(channel);
     if (error == -1) {
         fprintf(stderr, "ERROR in GIPSVoEBase::DeleteChannel\n");
@@ -118,6 +172,7 @@ AudioSourceGIPS::~AudioSourceGIPS()
     ptrVoEHardware->Release();
     ptrVoECodec->Release();
     ptrVoERender->Release();
+    ptrVoENetwork->Release();
 
     if (webrtc::VoiceEngine::Delete(ptrVoE) == false) {
         fprintf(stderr, "ERROR in GIPSVoiceEngine::Delete\n");
@@ -135,6 +190,7 @@ AudioSourceGIPS::Start()
     }
     this->WriteWAVHeader(8000,1);
 
+#if 0
     error = ptrVoEBase->StartReceive(channel);
     if (error) {
         fprintf(stderr, "ERROR in GIPSVoEBase::StartReceive\n");
@@ -143,6 +199,7 @@ AudioSourceGIPS::Start()
     if (error) {
         fprintf(stderr, "ERROR in GIPSVoEBase::StartPlayout\n");
     }
+#endif
     error = ptrVoEBase->StartSend(channel);
     if (error) {
         fprintf(stderr, "ERROR in GIPSVoEBase::StartSend\n");
