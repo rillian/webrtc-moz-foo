@@ -28,6 +28,7 @@ WEBRTC_LIBS := \
   src/modules/audio_device/main/source/libaudio_device.a \
   src/modules/audio_coding/NetEQ/main/source/libNetEq.a \
   src/modules/audio_coding/codecs/opus/main/source/libopus.a \
+  src/modules/audio_processing/ns/main/source/libns.a \
   src/modules/audio_processing/ns/main/source/libns_fix.a \
   src/modules/audio_processing/aecm/main/source/libaecm.a \
   src/modules/audio_processing/aec/main/source/libaec.a \
