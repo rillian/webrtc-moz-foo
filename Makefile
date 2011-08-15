@@ -29,7 +29,6 @@ WEBRTC_LIBS := \
   src/modules/audio_coding/NetEQ/main/source/libNetEq.a \
   src/modules/audio_coding/codecs/opus/main/source/libopus.a \
   src/modules/audio_processing/ns/main/source/libns.a \
-  src/modules/audio_processing/ns/main/source/libns_fix.a \
   src/modules/audio_processing/aecm/main/source/libaecm.a \
   src/modules/audio_processing/aec/main/source/libaec.a \
   src/common_audio/resampler/main/source/libresampler.a \
@@ -50,6 +49,7 @@ WEBRTC_LIBS := \
   src/common_audio/signal_processing_library/main/source/libspl.a \
   src/modules/audio_coding/codecs/G722/main/source/libG722.a \
   src/modules/audio_coding/codecs/PCM16B/main/source/libPCM16B.a \
+  third_party/protobuf/libprotobuf_lite.a \
   src/system_wrappers/source/libsystem_wrappers.a
 LIBS := $(WEBRTC_LIBS:%=$(WEBRTC_BUILDPATH)/%) -lrt -lXext -lX11 -lasound -lpulse -ldl -pthread
 
