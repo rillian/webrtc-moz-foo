@@ -37,9 +37,11 @@ protected:
 
     // GIPSViEExternalRenderer
     int FrameSizeChange(
-        unsigned int width, unsigned int height, unsigned int numberOfStreams
+        unsigned int width, unsigned int height,
+        unsigned int numberOfStreams
     );
-    int DeliverFrame(unsigned char* buffer, int bufferSize);
+    int DeliverFrame(unsigned char* buffer, int bufferSize,
+                     unsigned int time_stamp);
 };
 
 #endif // VideoCaptureGIPS_H

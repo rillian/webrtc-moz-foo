@@ -220,12 +220,13 @@ VideoSourceGIPS::FrameSizeChange(
 }
 
 int
-VideoSourceGIPS::DeliverFrame(unsigned char* buffer, int bufferSize)
+VideoSourceGIPS::DeliverFrame(unsigned char* buffer, int bufferSize,
+                              unsigned int time_stamp)
 {
     fwrite("FRAME\n", 6, 1, tmp);
     fwrite(buffer, bufferSize, 1, tmp);
     frames++;
 
-    fprintf(stderr, "Video frame %08d\n", frames);
+    fprintf(stderr, "Video frame %08d %u\n", frames, time_stamp);
     return 0;
 }
