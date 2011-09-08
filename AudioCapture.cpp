@@ -6,6 +6,8 @@
 
 #include "AudioCapture.h"
 
+#define NET_ROUNDTRIP
+
 /** implementation **/
 
 /* dummy transport to act as a sink for the voice engine pipeline **/
@@ -120,9 +122,10 @@ AudioSourceGIPS::AudioSourceGIPS()
        to handle this. The alternative it to set a destination
        socket with ptrVoEBase->SetSendDestination, after
        which StartSend() to push real network packets. */
-    //ptrVoEBase->SetSendDestination(channel, 8000, "127.0.0.1");
-    //ptrVoEBase->SetLocalReceiver(channel, 8000);
-
+#ifdef NET_ROUNDTRIP
+    ptrVoEBase->SetSendDestination(channel, 8000, "127.0.0.1");
+    ptrVoEBase->SetLocalReceiver(channel, 8000);
+#else
     ptrVoENetwork = webrtc::VoENetwork::GetInterface(ptrVoE);
     if (ptrVoENetwork == NULL) {
         fprintf(stderr, "ERROR in GIPSVoENetwork::GetInterface\n");
@@ -133,7 +136,7 @@ AudioSourceGIPS::AudioSourceGIPS()
         fprintf(stderr,
             "ERROR in GIPSVoENetwork::RegisterExternalTransport\n");
     }
-
+#endif
     /* set up the codec we want to use */
     ptrVoECodec = webrtc::VoECodec::GetInterface(ptrVoE);
     if (ptrVoECodec == NULL) {
@@ -156,12 +159,13 @@ AudioSourceGIPS::~AudioSourceGIPS()
 {
     int error;
 
+#ifndef NET_ROUNDTRIP
     error = ptrVoENetwork->DeRegisterExternalTransport(channel);
     if (error) {
         fprintf(stderr,
             "ERROR in GIPSVoENetwork::DeRegisterExternalTransport\n");
     }
-
+#endif
     error = ptrVoEBase->DeleteChannel(channel);
     if (error == -1) {
         fprintf(stderr, "ERROR in GIPSVoEBase::DeleteChannel\n");
@@ -190,7 +194,7 @@ AudioSourceGIPS::Start()
     }
     this->WriteWAVHeader(8000,1);
 
-#if 0
+#ifdef NET_ROUNDTRIP
     error = ptrVoEBase->StartReceive(channel);
     if (error) {
         fprintf(stderr, "ERROR in GIPSVoEBase::StartReceive\n");
